@@ -1,47 +1,41 @@
-#this program corresponds to assignment 2.3
-#computes the MLEs for xi and lambda using the 
-#Newton-Raphson method
-
-xi <- .75
-lambda <- .3995
-
-lnf <- function(xi,lambda){
-  return(3062*log(xi+(1-xi)*exp(-lambda))+1013*((log(1-xi)-lambda))+1628*log(lambda))
+binomial.cis = function(k, n, cl){
+  al <- 1-cl
+  crt <- qnorm(1-al/2); zsq <- crt**2
+  ph <- k/n; qh = 1-ph;
+  #Wald CIs
+  wlow = ph - crt*sqrt(ph*qh/n)
+  wupp = ph + crt*sqrt(ph*qh/n)
+  #Score CIs
+  dr <- 1+zsq/n
+  cent <- (ph+.5*zsq/n)/dr
+  me <- crt*sqrt(ph*(1-ph)+.25*zsq/n)/sqrt(n)/dr
+  slow <- cent-me
+  supp <- cent+me
+  return(list(wlow=wlow,wupp=wupp,slow=slow,supp=supp))
+}
+coverage.bin = function(n, p, cl){
+  al = 1-cl
+  zal = qnorm(1-al/2)
+  covw = 0; covs = 0; covx = 0
+  for(k in 0:n){
+    out = binomial.cis(k, n, cl)
+    if(out$wlow <= p & p <= out$wupp){covw = covw + dbinom(k,n,p)}
+    if(out$slow <= p & p <= out$supp){covs = covs + dbinom(k,n,p)}
+  }
+  return(c(covw,covs))
+}
+j <- 1
+wald <- c()
+score <- c()
+index <- c(17,20,25,30,35,37,42,44,49,10,12,13,15,18,23,28,33,40)
+for (i in index){
+  wald[j] <- coverage.bin(i,.5,.95)[1]
+  score[j] <- coverage.bin(i,.5,.95)[2]
+  j <- j + 1
 }
 
-fx <- function(xi,lambda){
-  return(((-3062*(1-exp(-lambda)))/((1-xi)*exp(-lambda)+xi))-(1013/(1-xi)))
-}
-fl <- function(xi,lambda){
-  return(((-3062*(1-xi)*exp(-lambda))/((1-xi)*exp(-lambda)+xi))+((1/lambda)*1628)-1013)
-}
+coverage.frame <- data.frame(wald,score)
+rownames(coverage.frame) <- index
 
-
-
-#a,b,and c are the second partial derivatives of the likelihood function with respect to xi and lambda
-
-a <- (-3062*(1-exp(-lambda))^2)/(((1-xi)*exp(-lambda)+xi)^2)-((1013)/(1-xi)^2)
-b <- (3062*exp(-lambda)/((1-xi)*exp(-lambda)+xi))+((3062*(1-xi)*(1-exp(-lambda))*exp(-lambda))/(((1-xi)*exp(-lambda)+xi)^2))
-c <- (3062*(1-xi)*exp(-lambda)/((1-xi)*exp(-lambda)+xi))-((3062*((1-xi)^2)*exp(-2*lambda))/(((1-xi)*exp(-lambda)+xi)^2))-((1/(lambda^2))*1628)
-
-i <- 1
-repeat{
-  jacobian <- matrix(c(a,b,b,c),2,2)
-  new.param <- c(xi,lambda) - solve(jacobian,c(fx(xi,lambda),fl(xi,lambda)))
-  if (abs(new.param[1]-.6150567) <= .0000001 && abs(new.param[2]-1.0378391) <= .0000001 || i >= 80){break}
-  xi <- new.param[1]
-  lambda <- new.param[2]
-  a <- (-3062*(1-exp(-lambda))^2)/(((1-xi)*exp(-lambda)+xi)^2)-((1013)/(1-xi)^2)
-  b <- (3062*exp(-lambda)/((1-xi)*exp(-lambda)+xi))+((3062*(1-xi)*(1-exp(-lambda))*exp(-lambda))/(((1-xi)*exp(-lambda)+xi)^2))
-  c <- (3062*(1-xi)*exp(-lambda)/((1-xi)*exp(-lambda)+xi))-((3062*((1-xi)^2)*exp(-2*lambda))/(((1-xi)*exp(-lambda)+xi)^2))-((1/(lambda^2))*1628)
-  i <- i + 1
-  print(c(xi,lambda))
-  print(i)
-}
-
-
-
-
-
-
-
+write.csv(coverage.frame, file="CovProbTable.csv")
+print(coverage.frame)
