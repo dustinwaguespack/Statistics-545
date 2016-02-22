@@ -5,7 +5,7 @@
 #this program corresponds to assignment 2.1 #3                      #
 #ord = the ordered sample                                           #
 #n = the size of the sample                                         #
-#r =  the number of the smallest order satsitics that are censored  #                                           #
+#r =  the number of the smallest order satsitics that are censored  #                                           
 #####################################################################
 laplace.mles.cens <- function(ord,n,r){
   mle.mu <-function(ord,n,r){
